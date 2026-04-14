@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concurs Epistola către Romani</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Tailwind gray-900 */
+            display: flex;
+            flex-direction: column; 
+            justify-content: flex-start; 
+            align-items: center; 
+            min-height: 100vh;
+            padding: 0.5rem;
+            overflow-y: auto; 
+        }
+        
+        .category-cell, .question-cell {
+            color: #fbd38d; /* Tailwind orange-300 */
+            text-align: center;
+            border: 2px solid #2d3748;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            user-select: none;
+            overflow: hidden;
+            line-height: 1.2; 
+        }
+
+        .category-cell {
+            background-color: #4338ca; /* Indigo-700 Deep Blue/Purple */
+            color: white;
+            font-size: 0.95rem; 
+            padding: 0.4rem; 
+            cursor: default;
+            font-weight: 900;
+            text-transform: uppercase;
+            height: 110px; 
+        }
+        
+        .question-cell {
+            background-color: #6366f1; /* Indigo-500 */
+            font-size: 2.2rem; 
+            padding: 0.6rem 0.5rem; 
+            font-weight: 700;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-decoration-color: #fbd38d;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            height: 85px; 
+        }
+
+        /* MODIFICAT: Grilă 5x5 */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
+
+        .question-cell:hover:not(.answered) {
+            background-color: #4f46e5; /* Indigo-600 */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .question-cell.answered {
+            background-color: #2d3748;
+            color: #a0aec0;
+            cursor: default;
+            pointer-events: none;
+            text-decoration: none;
+            font-size: 1.0rem;
+            font-weight: 400;
+        }
+        
+        .question-cell.answered.scored,
+        .question-cell.answered.penalized {
+            font-size: 0.9rem !important;
+            font-weight: 900 !important;
+            line-height: 1.2;
+            padding: 0.4rem;
+        }
+
+        @media (max-width: 768px) {
+             #game-board {
+                gap: 2px;
+            }
+            .category-cell {
+                font-size: 0.7rem; 
+                height: 70px; 
+                padding: 0.1rem;
+            }
+            .question-cell {
+                font-size: 1.1rem; 
+                height: 50px; 
+            }
+            .modal-content {
+                padding: 1rem;
+            }
+            #modal-question {
+                font-size: 1.5rem !important; 
+            }
+            #correct-answer {
+                font-size: 1.75rem !important; 
+            }
+            #answer-rationale {
+                font-size: 1.25rem !important;
+            }
+            #timer-display {
+                font-size: 2rem;
+            }
+            .question-cell.answered.scored,
+            .question-cell.answered.penalized {
+                font-size: 0.6rem !important; 
+            }
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 10px;
+        }
+        .modal-content {
+            width: 95%; 
+            max-width: 1200px; 
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <div class="w-full max-w-screen-xl p-2 md:p-8"> <!-- Lățime max-w-screen-xl (1280px) pentru 5 coloane -->
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center mb-4 text-white tracking-wider">Concurs Epistola către Romani</h1>
+        
+        <!-- Setup Screen -->
+        <div id="setup-screen" class="bg-gray-800 p-6 md:p-10 rounded-xl shadow-2xl space-y-6 max-w-lg mx-auto">
+            <h2 class="text-2xl font-bold text-yellow-400 text-center">Configurare Echipe</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="team-count" class="block text-sm font-medium text-gray-300 mb-2">Număr de Echipe (2-10):</label>
+                    <select id="team-count" class="w-full p-2 mt-1 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                        <!-- Options generated by JS -->
+                    </select>
+                </div>
+
+                <div id="team-name-inputs" class="space-y-3">
+                    <!-- Team name inputs will be generated here -->
+                </div>
+                
+                <button id="start-game-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-150">
+                    Începe Runda 1
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Game Board -->
+        <div id="game-container" class="hidden">
+            <!-- AFIȘARE RUNDĂ -->
+            <h2 id="current-round-display" class="text-2xl font-bold text-yellow-300 text-center mb-2"></h2>
+            
+            <p class="text-center text-gray-400 mb-6 text-sm">Alegeți o întrebare apăsând pe valoarea în puncte. Răspunsurile greșite duc la deducerea punctelor!</p>
+
+            <!-- Jeopardy Grid (5x5) -->
+            <div id="game-board">
+                <!-- Categoriile și întrebările vor fi generate de JS -->
+            </div>
+            
+            <!-- Score Board and Reset Button -->
+            <div class="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 class="text-xl font-bold text-white mb-3 text-center md:text-left md:mb-0">Tabelul de Scor</h2>
+                
+                <!-- BUTOANE DE NAVIGARE RUNDE -->
+                <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    <button id="start-bonus-1-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md w-full md:w-auto hidden">
+                        START BONUS RUNDA 1
+                    </button>
+                    <button id="start-round-2-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md w-full md:w-auto hidden">
+                        START RUNDA 2
+                    </button>
+                    <button id="start-bonus-2-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md w-full md:w-auto hidden">
+                        START BONUS RUNDA 2
+                    </button>
+                    <button id="start-final-jeopardy-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md w-full md:w-auto hidden">
+                        START RUNDA FINAL JEOPARDY!
+                    </button>
+                    <button id="restart-game-btn" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md w-full md:w-auto">
+                        Reîncepe Jocul
+                    </button>
+                </div>
+            </div>
+            <div id="score-board" class="flex flex-wrap justify-center gap-4 mt-4">
+                <!-- Scores will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Modal (Rămâne neschimbat) -->
+    <div id="question-modal" class="modal-overlay">
+        <div class="modal-content bg-gray-800 text-white shadow-xl rounded-xl">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 id="modal-category" class="text-xl font-bold mb-1 text-yellow-400"></h2>
+                    <p id="modal-points" class="text-lg font-semibold text-gray-400"></p>
+                </div>
+                <!-- Timer Display -->
+                <div id="timer-display" class="font-mono text-4xl font-black">30</div>
+            </div>
+            
+            <p id="modal-question" class="text-4xl font-extrabold mb-6 text-white"></p> 
+            
+            <div id="modal-answer-area" class="space-y-4">
+                <!-- NOU BUTON PENTRU START TIMER -->
+                <button id="start-timer-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150">
+                    START TIMER (30s)
+                </button>
+                <button id="show-answer-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 hidden">
+                    Afișează Răspunsul
+                </button>
+            </div>
+
+            <div id="answer-reveal" class="mt-6 p-4 bg-gray-700 rounded-lg hidden">
+                <p class="text-2xl font-bold text-green-400 mb-2">Răspuns Corect:</p>
+                <p id="correct-answer" class="text-4xl font-bold text-white mb-4"></p> 
+                
+                <p class="text-xl font-semibold text-gray-400 mb-2">Explicație:</p>
+                <p id="answer-rationale" class="text-xl text-gray-300"></p>
+                
+                <div class="mt-6 flex flex-col justify-between space-y-4">
+                    
+                    <div id="team-scoring-area" class="w-full space-y-2 p-3 bg-gray-600 rounded-lg">
+                        <p class="text-xl font-bold text-white">Adaugă Puncte (+<span id="score-value">0</span>):</p>
+                        <div id="team-buttons-score-container" class="grid grid-cols-3 md:grid-cols-4 gap-2">
+                        </div>
+                    </div>
+
+                    <div id="team-penalty-area" class="w-full space-y-2 p-3 bg-gray-600 rounded-lg">
+                        <p class="text-xl font-bold text-red-300">Dedu Puncte (-<span id="penalty-value">0</span>):</p>
+                        <div id="team-buttons-penalty-container" class="grid grid-cols-3 md:grid-cols-4 gap-2">
+                        </div>
+                    </div>
+
+                    <button id="close-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                        Închide / Nici o Echipă
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bonus Question Modal -->
+    <div id="bonus-question-modal" class="modal-overlay">
+        <div class="modal-content bg-gray-800 text-white shadow-xl rounded-xl w-full max-w-3xl p-6 md:p-10">
+            <h2 id="bonus-title" class="text-3xl font-extrabold mb-6 text-yellow-400 text-center">ÎNTREBARE BONUS!</h2>
+            <h3 id="bonus-category" class="text-xl font-bold mb-4 text-gray-400 text-center"></h3>
+            
+            <div id="bonus-question-phase">
+                <p id="bonus-question-text" class="text-4xl font-extrabold mb-8 p-4 bg-gray-700 rounded-lg border-2 border-yellow-400 text-center"></p>
+                <button id="bonus-show-answer-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150">
+                    Afișează Răspunsul
+                </button>
+            </div>
+
+            <div id="bonus-scoring-phase" class="hidden mt-8">
+                <p class="text-2xl font-bold text-green-400 mb-2">Răspuns Corect:</p>
+                <p id="bonus-correct-answer" class="text-4xl font-bold text-white mb-4"></p> 
+                <p class="text-xl text-gray-400 mb-6">Explicație: <span id="bonus-rationale"></span></p>
+
+                <p class="text-xl font-bold text-white mb-3">Evaluare Echipe (Puncte Fixe: <span id="bonus-points-value" class="text-yellow-400">0</span>)</p>
+                <p class="text-gray-400 mb-4 text-sm">Acordați puncte echipelor care au răspuns corect. Nu există penalizare pentru răspuns greșit la bonus.</p>
+                <div id="bonus-score-adjustment-container" class="space-y-4">
+                    <!-- Scoring buttons generated here -->
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button id="bonus-close-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150">
+                        Continuă Jocul
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Jeopardy Modal (Rămâne neschimbat) -->
+    <div id="final-jeopardy-modal" class="modal-overlay">
+        <div class="modal-content bg-gray-900 text-white shadow-xl rounded-xl w-full max-w-4xl p-6 md:p-10">
+            <h2 class="text-3xl font-extrabold mb-6 text-red-400 text-center">FINAL JEOPARDY!</h2>
+            <h3 id="final-category" class="text-xl font-bold mb-4 text-yellow-400 text-center"></h3>
+            
+            <div id="final-wagering-phase">
+                <p class="text-gray-300 text-center mb-6">Fiecare echipă trebuie să-și plaseze miza (între 0 și scorul curent).</p>
+                <div id="final-wagering-inputs" class="space-y-4 max-w-lg mx-auto">
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="show-final-question-btn" class="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-lg transition duration-150 disabled:opacity-50">
+                        Gata cu Mizele! Afișează Întrebarea
+                    </button>
+                </div>
+            </div>
+
+            <div id="final-question-phase" class="hidden text-center">
+                <p class="text-sm font-semibold text-gray-500 mb-2">Timp pentru răspuns (Moderator: Porniți timerul)</p>
+                <div id="final-timer-display" class="font-mono text-6xl font-black mb-6 text-red-500">60</div>
+                <p id="final-question-text" class="text-5xl font-extrabold mb-8 p-4 bg-gray-800 rounded-lg border-2 border-red-400"></p> 
+                <button id="final-show-answer-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150">
+                    Afișează Răspunsul (STOP Timp)
+                </button>
+            </div>
+
+            <div id="final-scoring-phase" class="hidden mt-8">
+                <p class="text-2xl font-bold text-green-400 mb-4">Răspuns Corect: <span id="final-correct-answer"></span></p>
+                <p class="text-xl text-gray-400 mb-6">Explicație: <span id="final-rationale"></span></p>
+
+                <div id="final-score-summary" class="mb-6 p-4 bg-gray-700 rounded-lg">
+                    <p class="text-xl font-bold text-yellow-400 mb-2">Scoruri Curente (înainte de finalizare):</p>
+                    <div id="score-summary-list" class="flex flex-wrap gap-4 justify-center">
+                    </div>
+                </div>
+
+                <p class="text-xl font-bold text-white mb-3">Evaluare Mize:</p>
+                <div id="final-score-adjustment-container" class="space-y-4">
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button id="final-close-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150">
+                        Încheie Runda Finală (Afișează Câștigătorul)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Paletă de culori Tailwind distincte pentru echipe
+        const teamColors = [
+            { bg: '#ef4444', text: '#fee2e2' }, // Red-500
+            { bg: '#3b82f6', text: '#eff6ff' }, // Blue-500
+            { bg: '#10b981', text: '#ecfdf5' }, // Emerald-500
+            { bg: '#a855f7', text: '#f3e8ff' }, // Violet-500
+            { bg: '#f97316', text: '#fff7ed' }, // Orange-600
+            { bg: '#06b6d4', text: '#f0f9ff' }, // Cyan-500
+            { bg: '#f59e0b', text: '#fffdf0' }, // Amber-500
+            { bg: '#78716c', text: '#fafaf9' }, // Stone-500
+            { bg: '#ec4899', text: '#fdf2f8' }, // Pink-500
+            { bg: '#22c55e', text: '#f0fdf4' }  // Lime-500
+        ];
+        
+        // --- DATE NOI PENTRU JOC (ROMANI 1-16) ---
+
+        // RUNDA 1 (Romani 1-16) - Puncte 100-400 (4 întrebări)
+        const pointsOrder1 = [100, 200, 300, 400];
+        const round1Data = [
+            {
+                category: "Capitolele 1-3: Starea Omenirii",
+                questions: [
+                    { points: 100, type: 'standard', question: "În Romani 1:16, Pavel spune că Evanghelia este 'puterea lui Dumnezeu' pentru ce anume?", answer: "Mântuirea (fiecăruia care crede)", rationale: "Evanghelia este puterea lui Dumnezeu pentru mântuire (1:16)." },
+                    { points: 200, type: 'standard', question: "Ce pot observa oamenii in creatie si de aceea nu se pot dezvinovati?", answer: "Însușirile nevăzute, puterea veșnică și dumnezeirea Lui", rationale: "Romani 1:20 - Acestea se văd în lucrurile făcute de El." },
+                    { points: 300, type: 'standard', question: "Ce afirmă Pavel în Romani 2:11 că 'nu există' înaintea lui Dumnezeu?", answer: "Părtinire (Favoritism)", rationale: "Dumnezeu nu judecă pe bază de statut sau etnie (2:11)." },
+                    { points: 400, type: 'standard', question: "Citând Vechiul Testament, Pavel concluzionează în Romani 3:10: 'Nu este niciun om...'.", answer: "Neprihănit (Drept)", rationale: "Aceasta este concluzia universală despre starea umană (3:10)." }
+                ]
+            },
+            {
+                category: "Capitolele 4-6: Justificare și Viață Nouă",
+                questions: [
+                    { points: 100, type: 'standard', question: "În Romani 4:3, 'Avraam a ______ pe Dumnezeu, și aceasta i s-a socotit ca neprihănire.'", answer: "Crezut", rationale: "Credința a fost baza justificării lui Avraam (4:3)." },
+                    { points: 200, type: 'standard', question: "Deoarece am fost justificați prin credință, ce avem cu Dumnezeu, conform Romani 5:1?", answer: "Pace", rationale: "Justificarea aduce pace cu Dumnezeu (5:1)." },
+                    { points: 300, type: 'standard', question: "În Romani 5:8, Dumnezeu Și-a arătat dragostea față de noi prin faptul că Hristos a murit pentru noi când eram încă...", answer: "Păcătoși", rationale: "Dragostea lui Dumnezeu nu a așteptat să fim buni (5:8)." },
+                    { points: 400, type: 'tf', question: "Pavel ne încurajează să păcătuim, pentru ca harul să se poată înmulți (Romani 6:1-2).", answer: "Fals (Nicidecum!)", rationale: "Pavel respinge vehement această idee (6:2)." }
+                ]
+            },
+            {
+                category: "Capitolele 7-9: Legea, Duhul și Israel",
+                questions: [
+                    { points: 100, type: 'standard', question: "Cum descrie Pavel Legea în Romani 7:12?", answer: "Sfântă, dreaptă și bună", rationale: "Problema nu este Legea, ci păcatul care locuiește în noi (7:12)." },
+                    { points: 200, type: 'standard', question: "Care este concluzia glorioasă din Romani 8:1 pentru cei ce sunt în Hristos Isus?", answer: "Nu este nicio osândire (condamnare)", rationale: "Aceasta este eliberarea de sub condamnarea Legii (8:1)." },
+                    { points: 300, type: 'standard', question: "Cine sunt 'fii ai lui Dumnezeu', conform Romani 8:14?", answer: "Cei ce sunt călăuziți de Duhul lui Dumnezeu", rationale: "Călăuzirea Duhului este un semn al înfierii (8:14)." },
+                    { points: 400, type: 'standard', question: "Ce exemplu folosește Pavel în Romani 9 pentru a ilustra suveranitatea lui Dumnezeu în alegere, înainte ca cei doi să se fi născut?", answer: "Iacov și Esau", rationale: "Dumnezeu l-a ales pe Iacov în detrimentul lui Esau 'mai înainte ca ei să se fi născut' (9:11-13)." }
+                ]
+            },
+            {
+                category: "Capitolele 10-12: Mântuirea și Transformarea",
+                questions: [
+                    { points: 100, type: 'standard', question: "Ce fel de 'râvnă' (zel) aveau Israeliții pentru Dumnezeu, conform Romani 10:2?", answer: "O râvnă fără pricepere (cunoștință)", rationale: "Ei încercau să-și stabilească propria neprihănire (10:2-3)." },
+                    { points: 200, type: 'standard', question: "Ce trebuie să faci pentru a fi mântuit, conform Romani 10:9?", answer: "Să mărturisești cu gura ta pe Isus ca Domn și să crezi în inima ta că Dumnezeu L-a înviat", rationale: "Acesta este rezumatul mărturisirii salvatoare (10:9)." },
+                    { points: 300, type: 'standard', question: "Ce metaforă folosește Pavel în Romani 11 pentru a ilustra relația dintre Israel și Neamuri?", answer: "Un măslin (Neamurile sunt altoite)", rationale: "Neamurile sunt ramuri de măslin sălbatic altoite în măslinul bun (11:17)." },
+                    { points: 400, type: 'standard', question: "Cum trebuie să ne aducem trupurile, conform Romani 12:1?", answer: "Ca o jertfă vie, sfântă, plăcută lui Dumnezeu", rationale: "Aceasta este 'slujba duhovnicească' (închinarea rațională) (12:1)." }
+                ]
+            },
+            {
+                category: "Capitolele 13-16: Datorii și Salutări",
+                questions: [
+                    { points: 100, type: 'standard', question: "Care este datoria credinciosului față de 'stăpânirile înalte' (guvern), conform Romani 13:1?", answer: "Să le fie supus", rationale: "Pentru că stăpânirile sunt rânduite de Dumnezeu (13:1)." },
+                    { points: 200, type: 'standard', question: "Care este singura 'datorie' pe care trebuie să o avem mereu, conform Romani 13:8?", answer: "Să ne iubim unii pe alții", rationale: "Cine iubește pe alții a împlinit Legea (13:8)." },
+                    { points: 300, type: 'standard', question: "Cum trebuie să-l primim pe cel 'slab în credință' (Romani 14:1)?", answer: "Bine, fără să ne certăm pe păreri (opinii)", rationale: "Nu trebuie să judecăm pe robul altuia (14:1, 4)." },
+                    { points: 400, type: 'standard', question: "Ce slujitoare (diaconiță) a bisericii din Chencrea este recomandată de Pavel în Romani 16:1?", answer: "Fivi (Phoebe)", rationale: "Ea a ajutat pe mulți, inclusiv pe Pavel (16:1-2)." }
+                ]
+            }
+        ];
+        
+        // NOU: Bonus Runda 1
+        const bonusQuestion1Data = {
+            category: "Bonus (Capitolele 1-9)",
+            points: 300,
+            question: "În Romani 8:29, care este scopul final al lui Dumnezeu pentru cei pe care i-a chemat (cei 'cunoscuți mai dinainte')?",
+            answer: "Să fie asemenea chipului Fiului Său",
+            rationale: "Scopul predestinării este conformarea noastră la asemănarea cu Hristos, pentru ca El să fie 'Cel întâi născut dintre mai mulți frați'."
+        };
+
+        // RUNDA 2 (Romani 1-16) - Puncte 200-1000 (4 întrebări)
+        const pointsOrder2 = [200, 400, 800, 1000];
+        const round2Data = [
+            {
+                category: "Capitolele 1-3: Starea Omenirii",
+                questions: [
+                    { points: 200, type: 'standard', question: "Care este scopul Legii, conform Romani 3:20?", answer: "Prin Lege vine cunoașterea deplină a păcatului", rationale: "Legea nu justifică, ci expune păcatul (3:20)." },
+                    { points: 400, type: 'standard', question: "Romani 3:23 afirmă: 'Căci toți au...'", answer: "Păcătuit (și sunt lipsiți de slava lui Dumnezeu)", rationale: "Verset cheie despre universalitatea păcatului (3:23)." },
+                    { points: 800, type: 'standard', question: "În Romani 3:24, suntem socotiți neprihăniți 'fără plată' (gratuit), prin ce anume?", answer: "Prin harul Său (Prin răscumpărarea care este în Hristos Isus)", rationale: "Justificarea este un dar, nu un câștig (3:24)." },
+                    { points: 1000, type: 'standard', question: "Care este concluzia lui Pavel în Romani 3:28 despre cum este socotit omul neprihănit?", answer: "Prin credință, fără faptele Legii", rationale: "Acesta este nucleul argumentului lui Pavel (3:28)." }
+                ]
+            },
+            {
+                category: "Capitolele 4-6: Justificare și Viață Nouă",
+                questions: [
+                    { points: 200, type: 'standard', question: "În Romani 4:25, Isus a fost dat pentru păcatele noastre și a înviat pentru...", answer: "Justificarea noastră (Socotirea noastră ca neprihăniți)", rationale: "Învierea Sa confirmă și aplică justificarea noastră (4:25)." },
+                    { points: 400, type: 'standard', question: "Printr-un singur om a intrat păcatul în lume, conform Romani 5:12. Cine este acel om?", answer: "Adam", rationale: "Pavel îl pune pe Adam în contrast cu Hristos (5:12)." },
+                    { points: 800, type: 'standard', question: "În Romani 5:20, 'Acolo unde s-a înmulțit păcatul, ce a făcut harul?", answer: "S-a înmulțit și mai mult (A prisosit)", rationale: "Harul lui Dumnezeu depășește abundența păcatului (5:20)." },
+                    { points: 1000, type: 'standard', question: "Care este 'plata păcatului', conform Romani 6:23?", answer: "Moartea", rationale: "Versetul contrastează plata păcatului (moartea) cu darul lui Dumnezeu (viața veșnică) (6:23)." }
+                ]
+            },
+            {
+                category: "Capitolele 7-9: Legea, Duhul și Israel",
+                questions: [
+                    { points: 200, type: 'standard', question: "Din cauza luptei interioare, Pavel strigă în Romani 7:24: 'O, nenorocitul de mine! Cine mă va izbăvi de acest...'.", answer: "Trup de moarte", rationale: "Un strigăt de disperare care anticipează eliberarea (7:24)." },
+                    { points: 400, type: 'standard', question: "În Romani 8:28, 'Toate lucrurile lucrează împreună spre...'", answer: "Binele celor ce iubesc pe Dumnezeu", rationale: "Dumnezeu lucrează suveran în toate situațiile (8:28)." },
+                    { points: 800, type: 'standard', question: "Ce metaforă folosește Pavel în Romani 9:21 pentru a apăra dreptul lui Dumnezeu de a alege?", answer: "Olarul și lutul", rationale: "Olarul are putere peste lut să facă un vas de cinste și altul de ocară (9:21)." },
+                    { points: 1000, type: 'standard', question: "Care este concluzia lui Pavel în Romani 9:6 despre promisiunile făcute lui Israel?", answer: "Nu toți cei ce se coboară din Israel sunt Israel", rationale: "Pavel face distincția între Israelul etnic și rămășița credincioasă (9:6)." }
+                ]
+            },
+            {
+                category: "Capitolele 10-12: Mântuirea și Transformarea",
+                questions: [
+                    { points: 200, type: 'standard', question: "În Romani 10:17, 'Astfel, credința vine în urma auzirii, iar auzirea vine prin...'", answer: "Cuvântul lui Hristos (Cuvântul lui Dumnezeu)", rationale: "Subliniază necesitatea predicării Evangheliei (10:17)." },
+                    { points: 400, type: 'standard', question: "Ce avertisment le dă Pavel Neamurilor (ramurilor altoite) în Romani 11:20-21?", answer: "Să nu se mândrească, ci să se teamă (căci Dumnezeu îi poate tăia și pe ei)", rationale: "Ei stau în picioare prin credință, nu prin merit (11:20)." },
+                    { points: 800, type: 'standard', question: "Cum are loc transformarea credinciosului, conform Romani 12:2?", answer: "Prin înnoirea minții", rationale: "Nu ne conformăm lumii, ci ne lăsăm transformați prin modul de gândire (12:2)." },
+                    { points: 1000, type: 'standard', question: "Numește 3 lucruri care 'nu ne vor putea despărți de dragostea lui Dumnezeu', conform Romani 8:38-39.", answer: "(Oricare 3: moartea, viața, îngerii, stăpânirile, puterile, înalțimea, adâncimea, nicio altă făptură etc.)", rationale: "Am mutat această întrebare (din Cap 8) aici pentru dificultate. Securitatea este absolută (8:38-39)." }
+                ]
+            },
+            {
+                category: "Capitolele 13-16: Datorii și Salutări",
+                questions: [
+                    { points: 200, type: 'standard', question: "Cu cine trebuie să ne 'îmbrăcăm', conform îndemnului final din Romani 13:14?", answer: "Cu Domnul Isus Hristos", rationale: "Și să nu mai purtăm grijă de firea pământească (13:14)." },
+                    { points: 400, type: 'standard', question: "Ce nu este Împărăția lui Dumnezeu, conform Romani 14:17?", answer: "Mâncare și băutură", rationale: "Ci este neprihănire, pace și bucurie în Duhul Sfânt (14:17)." },
+                    { points: 800, type: 'standard', question: "Care era principiul misionar al lui Pavel, menționat în Romani 15:20?", answer: "Să predice unde Hristos nu fusese vestit (să nu zidească pe temelia altuia)", rationale: "El dorea să ducă Evanghelia la cei ce nu o auziseră (15:20)." },
+                    { points: 1000, type: 'standard', question: "Ce cuplu este menționat în Romani 16:3-4 ca și-au pus 'capul în joc' pentru viața lui Pavel?", answer: "Priscila și Acuila", rationale: "Ei erau 'conlucrători' apropiați ai lui Pavel (16:3)." }
+                ]
+            }
+        ];
+
+        // NOU: Bonus Runda 2
+        const bonusQuestion2Data = {
+            category: "Bonus (Capitolele 10-16)",
+            points: 500,
+            question: "Care este îndemnul final al lui Pavel privind lupta cu răul, în Romani 12:21?",
+            answer: "Nu te lăsa biruit de rău, ci biruiește răul prin bine.",
+            rationale: "Acest verset rezumă etica creștină a non-răzbunării și a dragostei active (12:21)."
+        };
+        
+        // Datele pentru Runda Finală (MODIFICATĂ)
+        const finalJeopardyData = {
+            category: "Completați Versetul (Cap. 6)",
+            question: "Completați versetul din Romani 6:12: 'Deci păcatul să nu mai domnească în trupul vostru muritor și...'",
+            answer: "...să nu mai ascultați de poftele lui.",
+            rationale: "Versetul complet (Romani 6:12) ne îndeamnă să nu lăsăm păcatul să ne controleze trupul și să nu cedăm poftelor acestuia."
+        };
+
+        let teams = []; 
+        let currentQuestionElement = null;
+        let currentQuestionPoints = 0;
+        let timerInterval; 
+        let finalWagers = []; 
+        let currentRoundData = null; // Stochează datele rundei curente
+        let currentBonusData = null; // Stochează datele bonusului curent
+
+        // Elementele UI principale
+        const setupScreen = document.getElementById('setup-screen');
+        const gameContainer = document.getElementById('game-container');
+        const board = document.getElementById('game-board');
+        const modal = document.getElementById('question-modal');
+        const scoreBoard = document.getElementById('score-board');
+        const showAnswerBtn = document.getElementById('show-answer-btn');
+        <!-- NOU: Adaugă butonul de start timer -->
+        const startTimerBtn = document.getElementById('start-timer-btn');
+        const answerReveal = document.getElementById('answer-reveal');
+        const closeBtn = document.getElementById('close-btn');
+        const teamCountSelect = document.getElementById('team-count');
+        const teamNameInputs = document.getElementById('team-name-inputs');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        // ELEMENTE SCORARE/PENALIZARE
+        const teamButtonsScoreContainer = document.getElementById('team-buttons-score-container');
+        const teamButtonsPenaltyContainer = document.getElementById('team-buttons-penalty-container');
+        const scoreValueDisplay = document.getElementById('score-value');
+        const penaltyValueDisplay = document.getElementById('penalty-value');
+        
+        // --- ELEMENTE RUNDE & FINAL JEOPARDY ---
+        const currentRoundDisplay = document.getElementById('current-round-display');
+        const startBonus1Btn = document.getElementById('start-bonus-1-btn');
+        const startRound2Btn = document.getElementById('start-round-2-btn');
+        const startBonus2Btn = document.getElementById('start-bonus-2-btn');
+        
+        const finalJeopardyModal = document.getElementById('final-jeopardy-modal');
+        const finalWageringPhase = document.getElementById('final-wagering-phase');
+        const finalQuestionPhase = document.getElementById('final-question-phase');
+        const finalScoringPhase = document.getElementById('final-scoring-phase');
+
+        const startFinalJeopardyBtn = document.getElementById('start-final-jeopardy-btn');
+        const showFinalQuestionBtn = document.getElementById('show-final-question-btn');
+        const finalShowAnswerBtn = document.getElementById('final-show-answer-btn');
+        const finalCloseBtn = document.getElementById('final-close-btn');
+
+        // --- ELEMENTE BONUS MODAL ---
+        const bonusQuestionModal = document.getElementById('bonus-question-modal');
+        const bonusTitle = document.getElementById('bonus-title');
+        const bonusCategory = document.getElementById('bonus-category');
+        const bonusQuestionPhase = document.getElementById('bonus-question-phase');
+        const bonusQuestionText = document.getElementById('bonus-question-text');
+        const bonusShowAnswerBtn = document.getElementById('bonus-show-answer-btn');
+        const bonusScoringPhase = document.getElementById('bonus-scoring-phase');
+        const bonusCorrectAnswer = document.getElementById('bonus-correct-answer');
+        const bonusRationale = document.getElementById('bonus-rationale');
+        const bonusPointsValue = document.getElementById('bonus-points-value');
+        const bonusScoreAdjustmentContainer = document.getElementById('bonus-score-adjustment-container');
+        const bonusCloseBtn = document.getElementById('bonus-close-btn');
+
+
+        // --- Etapa 1: Configurare Echipe (Neschimbat) ---
+
+        function generateTeamInputs() {
+            const count = parseInt(teamCountSelect.value);
+            teamNameInputs.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const teamName = teams[i]?.name || `Echipa ${i + 1}`; 
+                const color = teamColors[i % teamColors.length]; 
+                const inputDiv = document.createElement('div');
+                inputDiv.className = 'flex items-center space-x-3';
+                inputDiv.innerHTML = `
+                    <div class="w-4 h-4 rounded-full" style="background-color: ${color.bg}; border: 2px solid ${color.text}"></div>
+                    <div class="flex-grow">
+                        <label for="team-name-${i}" class="block text-sm font-medium text-gray-400">Numele Echipei ${i + 1}:</label>
+                        <input type="text" id="team-name-${i}" placeholder="${teamName}" value="${teamName}" 
+                            class="w-full p-2 mt-1 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                `;
+                teamNameInputs.appendChild(inputDiv);
+            }
+        }
+        
+        function populateTeamCountSelect() {
+            teamCountSelect.innerHTML = '';
+            for (let i = 2; i <= 10; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i} Echipe`;
+                if (i === 4) { 
+                    option.selected = true;
+                }
+                teamCountSelect.appendChild(option);
+            }
+        }
+
+        // MODIFICAT: restartGame
+        function restartGame() {
+            teams = teams.map(team => ({ 
+                name: team.name, 
+                score: 0, 
+                color: team.color 
+            }));
+            
+            gameContainer.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+
+            generateTeamInputs(); 
+            
+            scoreBoard.innerHTML = '';
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // Ascunde butoanele de navigare
+            startBonus1Btn.classList.add('hidden');
+            startRound2Btn.classList.add('hidden');
+            startBonus2Btn.classList.add('hidden');
+            startFinalJeopardyBtn.classList.add('hidden');
+            currentRoundDisplay.textContent = '';
+            board.innerHTML = ''; // Golește tabla
+        }
+
+        restartGameBtn.addEventListener('click', restartGame);
+        teamCountSelect.addEventListener('change', generateTeamInputs);
+        
+        (function initialSetup() {
+            populateTeamCountSelect();
+            generateTeamInputs(); 
+        })();
+
+        // MODIFICAT: startGameBtn.onclick
+        startGameBtn.onclick = () => {
+            const count = parseInt(teamCountSelect.value);
+            const initialTeams = []; 
+            for (let i = 0; i < count; i++) {
+                const inputElement = document.getElementById(`team-name-${i}`);
+                let name = inputElement.value.trim();
+                if (name === "") {
+                    name = `Echipa ${i + 1}`;
+                }
+                initialTeams.push({ 
+                    name: name, 
+                    score: 0,
+                    color: teamColors[i % teamColors.length] 
+                });
+            }
+            teams = initialTeams;
+
+            setupScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+
+            // Încarcă RUNDA 1
+            loadRound(round1Data, pointsOrder1, "RUNDA 1");
+            
+            // Afișează butonul pentru Bonus 1
+            startBonus1Btn.classList.remove('hidden');
+            startRound2Btn.classList.add('hidden');
+            startBonus2Btn.classList.add('hidden');
+            startFinalJeopardyBtn.classList.add('hidden'); 
+
+            updateScoreBoard();
+        };
+        
+        // --- Etapa 2: Inițializare și Logică Joc (MODIFICATĂ) ---
+
+        // NOU: Funcție pentru încărcarea unei runde
+        function loadRound(roundData, points, roundName) {
+            currentRoundData = roundData;
+            currentRoundDisplay.textContent = roundName;
+            
+            if (roundName.includes("RUNDA 2")) {
+                currentRoundDisplay.classList.add('text-red-400'); // Stil diferit pentru Runda 2
+            } else {
+                currentRoundDisplay.classList.remove('text-red-400');
+            }
+            
+            initializeBoard(roundData, points);
+        }
+
+        // MODIFICAT: initializeBoard
+        function initializeBoard(roundData, pointsOrder) {
+            board.innerHTML = ''; // Golește tabla
+
+            // 1. Creează rândul de categorii (5)
+            roundData.forEach((category, index) => {
+                const categoryCell = document.createElement('div');
+                categoryCell.className = 'category-cell';
+                categoryCell.textContent = category.category;
+                
+                if (index === 0) {
+                    categoryCell.classList.add('rounded-tl-lg');
+                }
+                if (index === roundData.length - 1) {
+                    categoryCell.classList.add('rounded-tr-lg');
+                }
+                board.appendChild(categoryCell);
+            });
+
+            // 2. Creează celulele cu întrebări (5x4)
+            pointsOrder.forEach((pointsValue) => {
+                roundData.forEach((category, catIndex) => {
+                    const q = category.questions.find(q => q.points === pointsValue);
+                    
+                    if (q) {
+                        const qIndex = category.questions.indexOf(q);
+                        const cell = document.createElement('div');
+                        cell.className = 'question-cell rounded-lg';
+                        cell.textContent = q.points;
+                        cell.dataset.catIndex = catIndex;
+                        cell.dataset.qIndex = qIndex;
+                        cell.dataset.type = q.type; 
+                        cell.id = `q-${catIndex}-${qIndex}`;
+                        
+                        // Folosește currentRoundData pentru a găsi categoria
+                        cell.addEventListener('click', () => openQuestion(cell, q, currentRoundData[catIndex].category));
+                        
+                        board.appendChild(cell);
+                    } else {
+                        // Backup în caz că o întrebare lipsește
+                        const emptyCell = document.createElement('div');
+                        emptyCell.className = 'question-cell answered';
+                        emptyCell.textContent = '-';
+                        board.appendChild(emptyCell);
+                    }
+                });
+            });
+        }
+        
+        // NOU: Handler pentru Runda 2
+        startRound2Btn.onclick = () => {
+            // Încarcă Runda 2
+            loadRound(round2Data, pointsOrder2, "RUNDA 2 (Puncte Mari)");
+            
+            startRound2Btn.classList.add('hidden');
+            startBonus2Btn.classList.remove('hidden'); // Afișează Bonus 2
+            startFinalJeopardyBtn.classList.add('hidden');
+        };
+
+        // NOU: Handlers pentru Întrebările Bonus
+        startBonus1Btn.onclick = () => {
+            currentBonusData = bonusQuestion1Data;
+            openBonusModal(bonusQuestion1Data, "BONUS RUNDA 1", "start-round-2-btn");
+        };
+        
+        startBonus2Btn.onclick = () => {
+            currentBonusData = bonusQuestion2Data;
+            openBonusModal(bonusQuestion2Data, "BONUS RUNDA 2", "start-final-jeopardy-btn");
+        };
+
+        function openBonusModal(bonusData, title, nextButtonId) {
+            gameContainer.classList.add('hidden');
+            
+            bonusTitle.textContent = title;
+            bonusCategory.textContent = `Categoria: ${bonusData.category}`;
+            bonusQuestionText.textContent = bonusData.question;
+            bonusCorrectAnswer.textContent = bonusData.answer;
+            bonusRationale.textContent = bonusData.rationale;
+            bonusPointsValue.textContent = bonusData.points;
+            
+            bonusQuestionPhase.classList.remove('hidden');
+            bonusScoringPhase.classList.add('hidden');
+            bonusScoreAdjustmentContainer.innerHTML = '';
+            
+            bonusCloseBtn.dataset.nextButton = nextButtonId; // Stochează ce buton să afișeze la închidere
+            
+            bonusQuestionModal.style.display = 'flex';
+        }
+        
+        bonusShowAnswerBtn.onclick = () => {
+            bonusQuestionPhase.classList.add('hidden');
+            bonusScoringPhase.classList.remove('hidden');
+            generateBonusScoringButtons();
+        };
+
+        function generateBonusScoringButtons() {
+            bonusScoreAdjustmentContainer.innerHTML = '';
+            const points = currentBonusData.points;
+
+            teams.forEach((team, index) => {
+                const teamColor = team.color;
+                
+                const buttonDiv = document.createElement('div');
+                buttonDiv.id = `bonus-score-row-${index}`;
+                buttonDiv.className = 'flex justify-between items-center p-3 rounded-lg bg-gray-700 border-l-4';
+                buttonDiv.style.borderColor = teamColor.bg;
+                
+                buttonDiv.innerHTML = `
+                    <span class="text-lg font-bold truncate" style="color: ${teamColor.bg}">${team.name}</span>
+                    <div class="flex space-x-2">
+                        <button data-index="${index}" data-points="${points}" 
+                                class="bonus-score-btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                            Corect (+${points})
+                        </button>
+                        <button data-index="${index}" data-points="0" 
+                                class="bonus-score-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                            Greșit (+0)
+                        </button>
+                    </div>
+                `;
+                bonusScoreAdjustmentContainer.appendChild(buttonDiv);
+            });
+
+            document.querySelectorAll('.bonus-score-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const pointsToAdd = parseInt(e.target.dataset.points);
+                    
+                    if (pointsToAdd > 0) {
+                        teams[index].score += pointsToAdd;
+                        document.getElementById(`bonus-score-row-${index}`).style.backgroundColor = '#166534'; // Verde închis
+                    } else {
+                        document.getElementById(`bonus-score-row-${index}`).style.backgroundColor = '#b91c1c'; // Roșu închis
+                    }
+
+                    // Dezactivează ambele butoane pentru rândul respectiv
+                    document.querySelectorAll(`#bonus-score-row-${index} .bonus-score-btn`).forEach(b => b.disabled = true);
+                    
+                    updateScoreBoard();
+                });
+            });
+        }
+        
+        bonusCloseBtn.onclick = (e) => {
+            const nextButtonId = e.target.dataset.nextButton;
+            
+            // Ascunde toate butoanele de navigare
+            startBonus1Btn.classList.add('hidden');
+            startRound2Btn.classList.add('hidden');
+            startBonus2Btn.classList.add('hidden');
+            startFinalJeopardyBtn.classList.add('hidden');
+            
+            // Afișează butonul următor
+            if (nextButtonId) {
+                document.getElementById(nextButtonId).classList.remove('hidden');
+            }
+            
+            bonusQuestionModal.style.display = 'none';
+            gameContainer.classList.remove('hidden');
+        };
+
+        <!-- NOU: Adaugă event listener pentru noul buton -->
+        startTimerBtn.onclick = () => {
+            startTimer(30);
+            startTimerBtn.classList.add('hidden');
+            showAnswerBtn.classList.remove('hidden');
+        };
+
+
+        // --- Logică Timer (Neschimbat) ---
+        function startTimer(duration) {
+            let timeRemaining = duration;
+            timerDisplay.textContent = timeRemaining;
+            timerDisplay.style.color = '#f59e0b'; 
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                timerDisplay.textContent = timeRemaining;
+                if (timeRemaining <= 10) {
+                    timerDisplay.style.color = '#ef4444'; 
+                }
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = 'STOP!';
+                }
+            }, 1000);
+        }
+
+        // Deschide modalul cu întrebarea (Neschimbat)
+        function openQuestion(element, question, categoryName) {
+            currentQuestionElement = element;
+            currentQuestionPoints = question.points;
+            
+            document.getElementById('modal-category').textContent = `Categoria: ${categoryName}`;
+            document.getElementById('modal-points').textContent = `${question.points} Puncte`;
+            document.getElementById('correct-answer').textContent = question.answer;
+            document.getElementById('answer-rationale').textContent = question.rationale;
+
+            const modalQuestionEl = document.getElementById('modal-question');
+            if (question.type === 'tf') {
+                modalQuestionEl.innerHTML = `
+                    <span class="text-red-400 font-black mr-2">Adevărat / Fals:</span> 
+                    ${question.question}
+                `;
+            } else {
+                modalQuestionEl.textContent = question.question;
+            }
+            
+            scoreValueDisplay.textContent = question.points;
+            penaltyValueDisplay.textContent = question.points;
+
+            answerReveal.classList.add('hidden');
+            
+            <!-- MODIFICAT: Afișează butonul de START, ascunde "Afișează Răspunsul" -->
+            showAnswerBtn.classList.add('hidden');
+            startTimerBtn.classList.remove('hidden');
+            
+            teamButtonsScoreContainer.innerHTML = ''; 
+            teamButtonsPenaltyContainer.innerHTML = '';
+            
+            timerDisplay.textContent = '30';
+            timerDisplay.style.color = '#f59e0b'; // Culoarea implicită
+
+            modal.style.display = 'flex';
+            // startTimer(30); // --- ACEASTĂ LINIE ESTE ELIMINATĂ ---
+        }
+
+        // showAnswer (MODIFICAT - pentru a ascunde ambele butoane)
+        function showAnswer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // Ascunde ambele butoane de control
+            showAnswerBtn.classList.add('hidden');
+            startTimerBtn.classList.add('hidden'); // Asigură-te că e ascuns
+            
+            answerReveal.classList.remove('hidden');
+            timerDisplay.style.color = '#34d399'; 
+            timerDisplay.textContent = 'GATA';
+            generateTeamSelectionButtons();
+        }
+        showAnswerBtn.onclick = showAnswer;
+
+        // generateTeamSelectionButtons (Neschimbat)
+        function generateTeamSelectionButtons() {
+            teamButtonsScoreContainer.innerHTML = ''; 
+            teamButtonsPenaltyContainer.innerHTML = '';
+            teams.forEach((team, index) => {
+                const teamColor = team.color;
+                const scoreBtn = document.createElement('button');
+                scoreBtn.textContent = team.name;
+                scoreBtn.className = 'font-bold py-2 px-3 rounded-lg transition duration-150 text-lg truncate'; 
+                scoreBtn.style.backgroundColor = teamColor.bg;
+                scoreBtn.style.color = teamColor.text;
+                scoreBtn.onclick = () => finalizeQuestion(index, currentQuestionPoints, team.name, 'Scored'); 
+                teamButtonsScoreContainer.appendChild(scoreBtn);
+
+                const penaltyBtn = document.createElement('button');
+                penaltyBtn.textContent = team.name;
+                penaltyBtn.className = 'font-bold py-2 px-3 rounded-lg transition duration-150 text-lg truncate bg-gray-500 text-white hover:bg-gray-600'; 
+                penaltyBtn.onclick = () => finalizeQuestion(index, -currentQuestionPoints, team.name, 'Penalized'); 
+                teamButtonsPenaltyContainer.appendChild(penaltyBtn);
+            });
+        }
+
+        // finalizeQuestion (Neschimbat)
+        function finalizeQuestion(teamIndex, points, teamName, status) {
+            teams[teamIndex].score += points; 
+            updateScoreBoard();
+            closeModal();
+            markAnswered(teamName, status, points, teamIndex); 
+        }
+
+        // closeBtn.onclick (Neschimbat)
+        closeBtn.onclick = () => {
+            closeModal();
+            markAnswered(null, 'None', currentQuestionPoints, null); 
+        };
+
+        // closeModal (Neschimbat)
+        function closeModal() {
+            if (timerInterval) clearInterval(timerInterval);
+            modal.style.display = 'none';
+        }
+
+        // markAnswered (Neschimbat)
+        function markAnswered(teamName = null, status = 'None', points, teamIndex = null) {
+            if (currentQuestionElement) {
+                const element = currentQuestionElement;
+                element.classList.add('answered');
+                element.classList.remove('scored', 'penalized'); 
+                element.style.backgroundColor = '#2d3748';
+                element.style.color = '#a0aec0';
+
+                if (status === 'Scored' && teamIndex !== null) {
+                    const teamColor = teams[teamIndex].color;
+                    element.classList.add('scored');
+                    element.textContent = teamName.toUpperCase(); 
+                    element.style.backgroundColor = teamColor.bg;
+                    element.style.color = teamColor.text;
+                    element.style.fontWeight = '900';
+                    element.style.fontSize = '0.9rem';
+                } else if (status === 'Penalized' && teamIndex !== null) {
+                    const teamColor = teams[teamIndex].color;
+                    element.classList.add('penalized');
+                    element.textContent = `${teamName.toUpperCase()} (-${Math.abs(points)})`; 
+                    element.style.backgroundColor = teamColor.bg;
+                    element.style.color = teamColor.text;
+                    element.style.fontWeight = '900';
+                    element.style.fontSize = '0.9rem';
+                } else {
+                    element.textContent = 'X';
+                }
+                element.onclick = null; 
+                currentQuestionElement = null; 
+            }
+        }
+
+        // updateScoreBoard (Neschimbat)
+        function updateScoreBoard() {
+            scoreBoard.innerHTML = ''; 
+            const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+            sortedTeams.forEach((team, index) => {
+                const scoreCard = document.createElement('div');
+                const isNegative = team.score < 0;
+                const backgroundColor = isNegative ? '#dc2626' : team.color.bg; // Red-600 for negative
+                const textColor = isNegative ? 'text-white' : team.color.text;
+                let crownStyle = '';
+                if (index === 0 && !isNegative) {
+                    crownStyle = 'border-4 border-yellow-300 transform scale-[1.05]';
+                }
+                scoreCard.className = `p-4 rounded-xl shadow-lg flex-1 min-w-[150px] max-w-xs text-center ${textColor} ${crownStyle} transition duration-200`;
+                scoreCard.style.backgroundColor = backgroundColor;
+                scoreCard.innerHTML = `
+                    <p class="text-lg font-bold truncate">${team.name}</p>
+                    <p class="text-3xl font-extrabold mt-1">${team.score}</p>
+                `;
+                scoreBoard.appendChild(scoreCard);
+            });
+        }
+        
+        
+        // --- LOGICĂ FINAL JEOPARDY (Neschimbată) ---
+        
+        function displayCustomNotification(title, message) { 
+            const notificationModal = document.createElement('div');
+            notificationModal.className = 'fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[2000]';
+            notificationModal.innerHTML = `
+                <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm text-center transform scale-100 transition-transform duration-300">
+                    <p class="text-2xl font-bold text-green-700 mb-4">${title}</p>
+                    <p class="text-lg text-gray-800 whitespace-pre-wrap">${message}</p> 
+                    <button class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg" onclick="this.parentNode.parentNode.remove()">
+                        Închide
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(notificationModal);
+        }
+
+        startFinalJeopardyBtn.onclick = () => {
+            gameContainer.classList.add('hidden');
+            finalJeopardyModal.style.display = 'flex';
+            finalWageringPhase.classList.remove('hidden');
+            finalQuestionPhase.classList.add('hidden');
+            finalScoringPhase.classList.add('hidden');
+            document.getElementById('final-category').textContent = `Categoria: ${finalJeopardyData.category}`;
+            generateWageringInputs();
+        };
+
+        function generateWageringInputs() {
+            const inputsContainer = document.getElementById('final-wagering-inputs');
+            inputsContainer.innerHTML = '';
+            finalWagers = []; 
+            showFinalQuestionBtn.disabled = true;
+            teams.forEach((team, index) => { 
+                const teamScore = Math.max(0, team.score); 
+                const teamColor = team.color;
+                const inputDiv = document.createElement('div');
+                inputDiv.className = 'flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-3 p-3 rounded-lg shadow border-l-4';
+                inputDiv.style.borderColor = teamColor.bg;
+                inputDiv.style.backgroundColor = '#1f2937';
+                inputDiv.innerHTML = `
+                    <label class="font-semibold w-full md:w-1/3 truncate" style="color: ${teamColor.bg}">${team.name}</label>
+                    <span class="text-sm text-gray-400 w-full md:w-1/3 text-center">Scor: ${teamScore}</span>
+                    <input type="number" id="wager-${index}" placeholder="Miză (Max ${teamScore})" 
+                           min="0" max="${teamScore}" value="0"
+                           class="w-full md:w-1/3 p-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-right focus:ring-red-500 focus:border-red-500 team-wager-input">
+                `;
+                inputsContainer.appendChild(inputDiv);
+            });
+
+            const wagerInputs = document.querySelectorAll('.team-wager-input');
+            const checkWagers = () => {
+                return Array.from(wagerInputs).every(inp => {
+                    const max = parseInt(inp.max);
+                    const val = parseInt(inp.value);
+                    return !isNaN(val) && val >= 0 && val <= max && inp.value !== '';
+                });
+            };
+            wagerInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    showFinalQuestionBtn.disabled = !checkWagers();
+                });
+            });
+            showFinalQuestionBtn.disabled = !checkWagers();
+        }
+
+        showFinalQuestionBtn.onclick = () => {
+            finalWagers = teams.map((team, index) => {
+                const input = document.getElementById(`wager-${index}`);
+                const miza = parseInt(input.value) || 0;
+                const maxScore = Math.max(0, team.score); 
+                return { 
+                    name: team.name, 
+                    index: index,
+                    wager: Math.max(0, Math.min(miza, maxScore)),
+                    scored: false, 
+                    scoreAdjustment: 0 
+                };
+            });
+            finalWageringPhase.classList.add('hidden');
+            finalQuestionPhase.classList.remove('hidden');
+            document.getElementById('final-question-text').textContent = finalJeopardyData.question;
+            document.getElementById('final-timer-display').textContent = '60';
+            document.getElementById('final-timer-display').style.color = '#ef4444'; 
+            startFinalJeopardyTimer(60);
+        };
+
+        function startFinalJeopardyTimer(duration) {
+            let timeRemaining = duration;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                const timerDisplayEl = document.getElementById('final-timer-display');
+                timerDisplayEl.textContent = timeRemaining;
+                if (timeRemaining <= 10) {
+                    timerDisplayEl.style.color = '#f59e0b'; 
+                }
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplayEl.textContent = 'STOP!';
+                    timerDisplayEl.style.color = '#34d399'; 
+                }
+            }, 1000);
+        }
+
+        function updateFinalScoreSummary() {
+            const summaryList = document.getElementById('score-summary-list');
+            summaryList.innerHTML = ''; 
+            [...teams].sort((a, b) => b.score - a.score).forEach(team => {
+                const teamWagerData = finalWagers.find(w => w.name === team.name); 
+                const isScored = teamWagerData ? teamWagerData.scored : false; 
+                const scoreItem = document.createElement('div');
+                const borderColor = team.color.bg;
+                scoreItem.className = `text-center p-2 rounded-lg border-2 ${isScored ? 'shadow-xl' : ''} bg-gray-800 min-w-[120px]`;
+                scoreItem.style.borderColor = borderColor;
+                scoreItem.style.color = team.color.text;
+                scoreItem.innerHTML = `
+                    <p class="text-sm font-semibold truncate" style="color: ${team.color.bg}">${team.name}</p>
+                    <p class="text-xl font-extrabold mt-1" style="color: white">${team.score}</p>
+                `;
+                summaryList.appendChild(scoreItem);
+            });
+        }
+
+        finalShowAnswerBtn.onclick = () => {
+            if (timerInterval) clearInterval(timerInterval);
+            finalQuestionPhase.classList.add('hidden');
+            finalScoringPhase.classList.remove('hidden');
+            document.getElementById('final-correct-answer').textContent = finalJeopardyData.answer;
+            document.getElementById('final-rationale').textContent = finalJeopardyData.rationale;
+            generateFinalScoringButtons();
+        };
+
+        function generateFinalScoringButtons() {
+            const container = document.getElementById('final-score-adjustment-container');
+            container.innerHTML = '';
+            updateFinalScoreSummary();
+            finalWagers.forEach((wagerData, index) => {
+                const team = teams[wagerData.index];
+                const teamColor = team.color;
+                const buttonDiv = document.createElement('div');
+                buttonDiv.id = `final-score-row-${index}`;
+                const rowClass = wagerData.scored 
+                    ? (wagerData.scoreAdjustment > 0 ? 'bg-green-900 border-green-500' : 'bg-red-900 border-red-500') 
+                    : 'bg-gray-800 border-gray-700';
+                buttonDiv.className = `flex flex-col md:flex-row justify-between items-center p-4 rounded-lg shadow-xl transition duration-150 border-2 ${rowClass}`;
+                const scoreAdjustmentText = wagerData.scored 
+                    ? (wagerData.scoreAdjustment > 0 ? `+${wagerData.scoreAdjustment}` : `${wagerData.scoreAdjustment}`) 
+                    : `Miză: <span class="text-white font-bold">${wagerData.wager}</span>`;
+                const adjustmentColor = wagerData.scored 
+                    ? (wagerData.scoreAdjustment > 0 ? 'text-green-300' : 'text-red-300') 
+                    : 'text-gray-400';
+                buttonDiv.innerHTML = `
+                    <div class="w-full md:w-1/3 text-xl font-bold mb-2 md:mb-0 truncate" style="color: ${teamColor.bg}">${wagerData.name}</div>
+                    <div id="result-${index}" class="w-full md:w-1/3 text-lg mb-4 md:mb-0 text-center md:text-left">
+                        ${wagerData.scored ? 'Rezultat Final:' : ''} <span class="font-bold ${adjustmentColor}">${scoreAdjustmentText}</span>
+                    </div>
+                    <div class="w-full md:w-1/3 flex space-x-2 justify-end">
+                        <button id="final-correct-${index}" data-index="${index}" data-points="${wagerData.wager}" 
+                                class="finalize-final-score text-white font-bold py-2 px-4 rounded-lg transition duration-150 text-base disabled:opacity-50 bg-green-600 hover:bg-green-700"
+                                ${wagerData.scored ? 'disabled' : ''}>
+                            Corect (+${wagerData.wager})
+                        </button>
+                        <button id="final-incorrect-${index}" data-index="${index}" data-points="${wagerData.wager}" 
+                                class="finalize-final-score text-white font-bold py-2 px-4 rounded-lg transition duration-150 text-base disabled:opacity-50 bg-red-600 hover:bg-red-700"
+                                ${wagerData.scored ? 'disabled' : ''}>
+                            Greșit (-${wagerData.wager})
+                        </button>
+                    </div>
+                `;
+                container.appendChild(buttonDiv);
+            });
+            
+            document.querySelectorAll('.finalize-final-score').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const points = parseInt(e.target.dataset.points); 
+                    const isCorrect = e.target.id.startsWith('final-correct-'); 
+                    if (finalWagers[index].scored) return; 
+                    let scoreAdjustment = isCorrect ? points : -points; 
+                    teams[finalWagers[index].index].score += scoreAdjustment;
+                    finalWagers[index].scored = true;
+                    finalWagers[index].scoreAdjustment = scoreAdjustment; 
+                    document.getElementById(`final-correct-${index}`).disabled = true;
+                    document.getElementById(`final-incorrect-${index}`).disabled = true;
+                    const row = document.getElementById(`final-score-row-${index}`);
+                    const resultTextEl = document.getElementById(`result-${index}`);
+                    row.classList.remove('bg-gray-800', 'border-gray-700', 'bg-red-900', 'border-red-500', 'bg-green-900', 'border-green-500'); 
+                    row.classList.add(isCorrect ? 'bg-green-900' : 'bg-red-900');
+                    row.classList.add(isCorrect ? 'border-green-500' : 'border-red-500');
+                    const adjustmentText = scoreAdjustment > 0 ? `+${scoreAdjustment}` : scoreAdjustment.toString();
+                    resultTextEl.innerHTML = `Rezultat Final: <span class="font-bold ${isCorrect ? 'text-green-300' : 'text-red-300'}">${adjustmentText}</span>`;
+                    updateScoreBoard(); 
+                    updateFinalScoreSummary();
+                });
+            });
+        }
+
+        finalCloseBtn.onclick = () => {
+            const allScored = finalWagers.every(w => w.scored);
+            if (!allScored) {
+                 displayCustomNotification("Atenție!", "Vă rugăm să marcați răspunsul (Corect/Greșit) pentru TOATE echipele înainte de a încheia runda Final Jeopardy!");
+                 return;
+            }
+            finalJeopardyModal.style.display = 'none';
+            gameContainer.classList.remove('hidden');
+            const winner = [...teams].sort((a, b) => b.score - a.score)[0];
+            const message = `Jocul s-a încheiat! Câștigătorul este ${winner.name} cu scorul final de ${winner.score} puncte!
+            
+Pentru a începe un joc nou sau pentru a relua de la zero cu aceleași echipe, apăsați butonul "Reîncepe Jocul" de pe ecran.`;
+            displayCustomNotification("Felicitări!", message);
+        };
+        
+    </script>
+
+</body>
+</html>
